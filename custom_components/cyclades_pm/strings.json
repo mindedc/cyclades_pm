@@ -1,0 +1,24 @@
+{
+    "config": {
+      "step": {
+        "user": {
+          "title": "Cyclades PM Setup",
+          "description": "Set up your Cyclades PM device",
+          "data": {
+            "name": "Name",
+            "serial_port": "Serial Port",
+            "username": "Username",
+            "password": "Password"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Failed to connect",
+        "unknown": "Unexpected error"
+      },
+      "abort": {
+        "already_configured": "Device is already configured",
+        "no_serial_ports": "No serial ports found"
+      }
+    }
+  }
