@@ -154,44 +154,6 @@ If you changed the device name but old entity names persist:
 - **Stop Bits**: 1
 - **Flow Control**: None
 
-### Commands Used
-
-| Command | Purpose | Frequency |
-|---------|---------|-----------|
-| `ver` | Get outlet count and firmware version | Once during setup |
-| `current` | Read current consumption | Every 10 seconds |
-| `temperature` | Read device temperature | Every 30 seconds |
-| `status all` | Get all outlet states | Every 5 minutes |
-| `on <n>` | Turn on outlet n | On demand |
-| `off <n>` | Turn off outlet n | On demand |
-| `cycle <n>` | Power cycle outlet n | On demand |
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Development Setup
-
-1. Clone the repository
-2. Create a branch for your feature
-3. Make your changes
-4. Test thoroughly with a physical device
-5. Submit a pull request
-
 ## License
 
 MIT Licsene
-
-## Support
-
-For issues, questions, or feature requests, please open an issue on GitHub.
-
-## Changelog
-
-### Version 1.0.0 (2024)
-- Initial release
-- Support for multiple devices
-- Optimized polling intervals
-- Auto-detection of outlet count
-- Custom device naming
-- Switch, button, and sensor entities
