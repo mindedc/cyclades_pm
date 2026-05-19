@@ -79,6 +79,7 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
             re.compile(r'pm>'): self._handle_authenticated,
             re.compile(r'Authentication failed.'): self._handle_auth_failure,
             re.compile(r'(\d+).*locked (ON|OFF)'): self._handle_port_state_locked,
+            re.compile(r'No temperature sensor detected.'): self._handle_no_temperature,
         }
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data via library."""
@@ -261,6 +262,15 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
         self.peak_temp_celsius = float(peak_c)
         self.peak_temp_fahrenheit = float(peak_f)
         self.async_set_updated_data(self._get_current_data())
+                                     
+    async def _handle_no_temperature(self) -> None:
+        """Handle unit without temperature sensor."""
+        # FIXME - Need to disable the temperature sensor, probably in the config flow process.
+        #self.temp_celsius = float(current_c)
+        #self.temp_fahrenheit = float(current_f)
+        #self.peak_temp_celsius = float(peak_c)
+        #self.peak_temp_fahrenheit = float(peak_f)
+        #self.async_set_updated_data(self._get_current_data())
 
     async def _handle_current(self, ipdu: str, amps: str, peak_amps: str) -> None:
         """Handle current data."""
