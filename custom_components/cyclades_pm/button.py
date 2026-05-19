@@ -65,7 +65,7 @@ class CycladesPMOutletCycleButton(CoordinatorEntity[CycladesPMCoordinator], Butt
         
         self._attr_unique_id = f"{coordinator.serial_port}_cycle_{outlet_number}"
         self._attr_name = f"{device_name} Cycle Outlet {outlet_number}"
-        self._attr_icon = "mdi:power-cycle"
+        self._attr_icon = "mdi:restart"
         self._device_name = device_name
 
     @property
