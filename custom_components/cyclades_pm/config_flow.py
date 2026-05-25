@@ -58,6 +58,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         "title": data.get(CONF_NAME, DEFAULT_NAME),
         "outlets_detected": coordinator.outlets_detected,
         "firmware_version": coordinator.firmware_version,
+        "has_temp_sensor": bool(coordinator.has_temp_sensor),
     }
 
 
@@ -71,6 +72,7 @@ class CycladesPMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._data = {}
         self._outlets_detected = 0
         self._firmware_version = ""
+        self._has_temp_sensor = True
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -84,6 +86,7 @@ class CycladesPMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._data = user_input
                 self._outlets_detected = info["outlets_detected"]
                 self._firmware_version = info["firmware_version"]
+                self._has_temp_sensor = info["has_temp_sensor"]
                 
                 # Show confirmation step with detected outlets
                 return await self.async_step_confirm()
@@ -126,6 +129,7 @@ class CycladesPMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             config_data = self._data.copy()
             config_data["outlets_detected"] = self._outlets_detected
             config_data["firmware_version"] = self._firmware_version
+            config_data["has_temp_sensor"] = self._has_temp_sensor
             
             return self.async_create_entry(
                 title=self._data.get(CONF_NAME, DEFAULT_NAME), 

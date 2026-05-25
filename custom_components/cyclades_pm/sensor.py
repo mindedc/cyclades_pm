@@ -29,11 +29,17 @@ async def async_setup_entry(
     """Set up Cyclades PM sensors."""
     coordinator: CycladesPMCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    entities = [
-        CycladesPMTemperatureSensor(coordinator, config_entry),
+    entities: list[SensorEntity] = [
         CycladesPMCurrentSensor(coordinator, config_entry, "current"),
         CycladesPMCurrentSensor(coordinator, config_entry, "peak_current"),
     ]
+
+    # Skip temperature entity creation when the config entry recorded that no
+    # sensor is present. Legacy entries created before this flag existed default
+    # to True so they keep their entity; the runtime `available` check below
+    # marks it unavailable if the device reports no sensor.
+    if config_entry.data.get("has_temp_sensor", True):
+        entities.append(CycladesPMTemperatureSensor(coordinator, config_entry))
 
     async_add_entities(entities)
 
@@ -77,6 +83,11 @@ class CycladesPMTemperatureSensor(CycladesPMSensorBase):
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def available(self) -> bool:
+        """Mark unavailable when the device reports no temperature sensor."""
+        return super().available and self.coordinator.has_temp_sensor is not False
 
     @property
     def native_value(self) -> float | None:

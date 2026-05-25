@@ -49,13 +49,16 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
         # Device data
         self.amps = 0.0
         self.peak_amps = 0.0
-        self.temp_celsius = 0.0
-        self.temp_fahrenheit = 0.0
-        self.peak_temp_celsius = 0.0
-        self.peak_temp_fahrenheit = 0.0
+        self.temp_celsius: float | None = 0.0
+        self.temp_fahrenheit: float | None = 0.0
+        self.peak_temp_celsius: float | None = 0.0
+        self.peak_temp_fahrenheit: float | None = 0.0
         self.max_amps = 0
         self.firmware_version = ""
         self.firmware_date = ""
+
+        # None = unknown (not yet probed), True/False = confirmed
+        self.has_temp_sensor: bool | None = None
         
         # Authentication state
         self.auth_failed = False
@@ -111,6 +114,7 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
             "firmware_date": self.firmware_date,
             "authenticated": self.authenticated,
             "outlets_detected": self.outlets_detected,
+            "has_temp_sensor": self.has_temp_sensor,
         }
 
     async def async_setup(self) -> None:
@@ -176,12 +180,33 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
             await self.txQueue.put("ver\r")
             
         # Wait for outlet detection via ver command
+        outlets_found = False
         for _ in range(15):  # 15 second timeout for ver response
             if self.outlets_detected > 0:
-                return True
+                outlets_found = True
+                break
             await asyncio.sleep(1)
-            
-        raise ConnectionError("Failed to detect outlets from device")
+
+        if not outlets_found:
+            raise ConnectionError("Failed to detect outlets from device")
+
+        # Probe for temperature sensor presence so the config entry can decide
+        # whether to create the temperature entity at all.
+        if self.txQueue:
+            await self.txQueue.put("temperature\r")
+
+        for _ in range(10):  # 10 second timeout for temperature probe
+            if self.has_temp_sensor is not None:
+                break
+            await asyncio.sleep(1)
+        else:
+            # Device didn't respond either way — assume a sensor is present so we
+            # don't silently hide it. The runtime "available" check will still
+            # cover the missing-sensor case if it shows up later.
+            _LOGGER.warning("No response to temperature probe; assuming sensor present")
+            self.has_temp_sensor = True
+
+        return True
 
     async def _read_serial(self) -> None:
         """Read from serial port."""
@@ -254,23 +279,24 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
         if self.txQueue:
             await self.txQueue.put(f"{self.password}\r")
 
-    async def _handle_temperature(self, ipdu: str, current_c: str, current_f: str, 
+    async def _handle_temperature(self, ipdu: str, current_c: str, current_f: str,
                                  peak_c: str, peak_f: str) -> None:
         """Handle temperature data."""
+        self.has_temp_sensor = True
         self.temp_celsius = float(current_c)
         self.temp_fahrenheit = float(current_f)
         self.peak_temp_celsius = float(peak_c)
         self.peak_temp_fahrenheit = float(peak_f)
         self.async_set_updated_data(self._get_current_data())
-                                     
+
     async def _handle_no_temperature(self) -> None:
         """Handle unit without temperature sensor."""
-        # FIXME - Need to disable the temperature sensor, probably in the config flow process.
-        #self.temp_celsius = float(current_c)
-        #self.temp_fahrenheit = float(current_f)
-        #self.peak_temp_celsius = float(peak_c)
-        #self.peak_temp_fahrenheit = float(peak_f)
-        #self.async_set_updated_data(self._get_current_data())
+        self.has_temp_sensor = False
+        self.temp_celsius = None
+        self.temp_fahrenheit = None
+        self.peak_temp_celsius = None
+        self.peak_temp_fahrenheit = None
+        self.async_set_updated_data(self._get_current_data())
 
     async def _handle_current(self, ipdu: str, amps: str, peak_amps: str) -> None:
         """Handle current data."""
