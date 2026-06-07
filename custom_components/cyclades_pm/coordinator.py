@@ -138,7 +138,12 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
                 asyncio.create_task(self._process_lines()),
                 asyncio.create_task(self._write_serial()),
             ]
-            
+
+            # Newer firmware waits for input before sending the login prompt.
+            # Nudge the device so it emits "Username:" on startup as well as
+            # during the config-flow connection test.
+            await self._wake_device()
+
             _LOGGER.info("Cyclades PM coordinator setup complete")
             
         except Exception as err:
@@ -163,14 +168,21 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
 
     async def test_connection(self) -> bool:
         """Test connection to device."""
+        # async_setup() sends an initial wake-up so silent firmware emits the
+        # "Username:" prompt; the loop below re-pokes if it doesn't show up.
         await self.async_setup()
-        
+
         # Wait for authentication or failure
-        for _ in range(30):  # 30 second timeout
+        for i in range(30):  # 30 second timeout
             if self.auth_failed:
                 raise ConnectionError("Authentication failed - check username and password")
             if self.authenticated:
                 break
+            # Re-poke periodically in case the first CR was consumed by the
+            # banner or the device wasn't ready yet. Only re-send while we're
+            # still waiting for the login prompt (i.e. nothing received yet).
+            if i and i % 5 == 0 and not self.authenticated:
+                await self._wake_device()
             await asyncio.sleep(1)
         else:
             raise ConnectionError("Timeout during authentication")
@@ -207,6 +219,19 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
             self.has_temp_sensor = True
 
         return True
+
+    async def _wake_device(self) -> None:
+        """Nudge the device so it emits a login prompt.
+
+        Newer firmware does not send the "Username:" prompt unsolicited; it
+        waits for input first. Send a couple of carriage returns to trigger it.
+        """
+        if not self.txQueue:
+            return
+        await self.txQueue.put("\r")
+        await asyncio.sleep(0.5)
+        await self.txQueue.put("\r")
+        _LOGGER.debug("Sent wake-up carriage returns to device")
 
     async def _read_serial(self) -> None:
         """Read from serial port."""
