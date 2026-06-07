@@ -74,7 +74,7 @@ class CycladesPMCoordinator(DataUpdateCoordinator):
         self.regex_functions = {
             re.compile(r'Username:'): self._send_username,
             re.compile(r'Password:'): self._send_password,
-            re.compile(r'IPDU #(\d+): Temperature: (\d+\.\d+)C \((\d+\.\d+)F\). Maximum: (\d+\.\d+)C \((\d+\.\d+)F\)'): self._handle_temperature,
+            re.compile(r'IPDU #(\d+): Temperature: (\d+\.\d+).?C \((\d+\.\d+).?F\). Maximum: (\d+\.\d+).?C \((\d+\.\d+).?F\)'): self._handle_temperature,
             re.compile(r'IPDU #(\d+): True RMS current: (\d+\.\d+)A. Maximum current: (\d+\.\d+)A'): self._handle_current,
             re.compile(r'IPDU #(\d+): Hw with (\d+) outlets (\d+) AMPs max Sw V (\d+\.\d+\.\d+) (.*)$'): self._handle_ver,
             re.compile(r'(\d+): Outlet turned (on|off).'): self._handle_port_state,
